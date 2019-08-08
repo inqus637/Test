@@ -120,6 +120,7 @@ public class FileSystemStorageService implements StorageService {
         char SIMBOL= '#'; // Константа определяющая разделов
         String line;
         int n=0;
+        int a=0;
         ArrayList<Integer> NumContents = new ArrayList(); // Строчный массив для хранения номеров разелов
         ArrayList<String> Content = new ArrayList(); // Строчный массив для хранения строк с разделами
         //Цикл считывающий текстовый файл
@@ -142,6 +143,10 @@ public class FileSystemStorageService implements StorageService {
                 for(int i = 0; i < n; i++) {
                     GenSimbol+="#";
                     NavigationContext+=(NumContents.get(i)+1)+".";
+                }
+                if (a != NumContents.get(n-1)){
+                    a = NumContents.get(n-1);
+                    NumContents.set(n, -1);
                 }
                 if(NavigationContext.length()>0){
                     NavigationContext=(NavigationContext.substring(0, NavigationContext.length() - 1));
