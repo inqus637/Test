@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
 
@@ -25,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import javax.json.JsonArray;
 @Service
 public class FileSystemStorageService implements StorageService {
 
@@ -118,15 +121,25 @@ public class FileSystemStorageService implements StorageService {
         File InputFile = new File(s);
         BufferedReader Text = new BufferedReader(new FileReader(InputFile));
         char SIMBOL= '#'; // Константа определяющая разделов
-        String line;
-        int n=0;
-        int a=0;
+        String line; // Содержимое обрабатываем строки
+        int n=0; // Переменная определения номера раздела
+        int a=0; // Корректирующая номер раздела переменная
+        int StrCount=0; // Хранит номер строки
+        int MaxSelection=0; // Количество уровней абзацев
+        JSONArray arr = new JSONArray();
+        JSONArray arr2 = new JSONArray();;
+        ArrayList<Integer> IndexUp = new ArrayList();
         ArrayList<Integer> NumContents = new ArrayList(); // Строчный массив для хранения номеров разелов
         ArrayList<String> Content = new ArrayList(); // Строчный массив для хранения строк с разделами
+        ArrayList<Integer> NumStrStart = new ArrayList();
+        ArrayList<Integer> NumStrOver = new ArrayList();
         //Цикл считывающий текстовый файл
         while ((line = Text.readLine()) != null){
+            StrCount++;
             //Проверка является ли строка абзацем
             if (line.charAt(0)==SIMBOL){
+                NumStrStart.add(StrCount);
+                NumStrOver.add(StrCount);
                 String GenSimbol = "";
                 String NavigationContext ="";
                 //Подсчет подразделов
@@ -152,17 +165,71 @@ public class FileSystemStorageService implements StorageService {
                     NavigationContext=(NavigationContext.substring(0, NavigationContext.length() - 1));
                     line=(line.replaceAll(GenSimbol, NavigationContext));
                 }
+                if(MaxSelection<n){MaxSelection=n;}
+                IndexUp.add(n);
                 n=0;
                 Content.add(line);
             }
         }
+        System.out.println(IndexUp);
+        System.out.println(Content);
+        System.out.println(MaxSelection);
+        //Создание объекта json
         // Запись Результатов в файл
         FileWriter writer = new FileWriter(InputFile);
         for (int i = 0; i < Content.size(); i++){
-            writer.write(Content.get(i)+System.lineSeparator());
+            JSONObject obj = new JSONObject();
+            obj.put("Название раздела",Content.get(i));//Кодирование объекта json
+            obj.put("Первая страница", NumStrStart.get(i));
+            obj.put("Последняя страница",NumStrOver.get(i));
+            obj.put("Размер раздела",NumStrStart.get(i)-NumStrOver.get(i));
+            arr.add(obj);
+            // if(i == Content.size()-1){writer.write(obj+"");} else{writer.write(obj+System.lineSeparator());}
             //System.out.println(Content.get(i));
         }
+
+
+        writer.write(arr.toJSONString());
         writer.close();
+        int t=0; // триггер
+        // Цикл идет пока есть элементы
+        while (IndexUp.indexOf(MaxSelection)>=0 && MaxSelection>1){
+            //System.out.println(IndexUp.get(IndexUp.indexOf(MaxSelection)-1)+"           "+IndexUp.get(IndexUp.indexOf(MaxSelection)));
+            if(IndexUp.get(IndexUp.indexOf(MaxSelection)-1)<IndexUp.get(IndexUp.indexOf(MaxSelection))){
+
+                if(t!=IndexUp.indexOf(MaxSelection)){arr2.clear();}
+                t=IndexUp.indexOf(MaxSelection);
+                JSONObject obj1 = new JSONObject((Map) arr.get(IndexUp.indexOf(MaxSelection)-1));
+                System.out.println(arr.get(IndexUp.indexOf(MaxSelection)-1));
+                JSONObject obj2 = new JSONObject((Map) arr.get(IndexUp.indexOf(MaxSelection)));
+                System.out.println(arr.get(IndexUp.indexOf(MaxSelection)));
+                arr2.add(obj2);
+                obj1.put("Подраздел", arr2);
+                System.out.println(IndexUp.get(IndexUp.indexOf(MaxSelection)));
+                arr.set(IndexUp.indexOf(MaxSelection)-1,obj1);
+                arr.remove(IndexUp.indexOf(MaxSelection));
+                IndexUp.remove(IndexUp.indexOf(MaxSelection));
+                System.out.println(arr);
+            }
+            if(IndexUp.indexOf(MaxSelection)<0 ){MaxSelection--;}
+        }
+
+
+        /*
+
+        Пока(индекс(максуровень)<0)
+        Массив.индекс(максуровень)-1 вставить Массив.индекс(максуровень)
+        Удалить найденый макс индекс
+        Удалить json из массива
+        Если(индекс(максуровень)<0)
+        максуровень--
+
+JSONObject obj3 = new JSONObject((Map) arr.get(1));
+        obj3.put("Подраздел", arr);
+        System.out.println(obj3);
+
+*/
+
     }
 
 }
